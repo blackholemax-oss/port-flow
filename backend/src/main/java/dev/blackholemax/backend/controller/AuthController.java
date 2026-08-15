@@ -30,6 +30,15 @@ public class AuthController {
         return Map.of("code", 200, "userId", user.getId(), "email", user.getEmail());
     }
 
+    /**
+     * 管理后台登录：仅管理员账号可登录（非管理员返回 403），供 admin-web 使用。
+     */
+    @PostMapping("/admin/login")
+    public Map<String, Object> adminLogin(@RequestBody AuthRequest request) {
+        User user = authService.loginAdmin(request);
+        return Map.of("code", 200, "userId", user.getId(), "email", user.getEmail());
+    }
+
     @PostMapping("/logout")
     public Map<String, Object> logout() {
         authService.logout();

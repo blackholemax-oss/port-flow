@@ -1,6 +1,8 @@
 package dev.blackholemax.backend.web;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -9,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.Map;
 
 /**
- * 全局异常处理：Sa-Token 未登录时，API 返回 401 JSON，页面重定向到登录页。
+ * 全局异常处理：Sa-Token 未登录/无权限时，API 返回 401/403 JSON，页面重定向到登录页。
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -19,6 +21,15 @@ public class GlobalExceptionHandler {
         String uri = request.getRequestURI();
         if (uri.startsWith("/api/")) {
             return ResponseEntity.status(401).body(Map.of("code", 401, "msg", "未登录或登录已过期"));
+        }
+        return "redirect:/admin/login";
+    }
+
+    @ExceptionHandler({NotRoleException.class, NotPermissionException.class})
+    public Object handleForbidden(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/api/")) {
+            return ResponseEntity.status(403).body(Map.of("code", 403, "msg", "无权限访问该资源"));
         }
         return "redirect:/admin/login";
     }

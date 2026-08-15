@@ -16,12 +16,14 @@ USE portfolio;
 
 -- ------------------------------------------------------------
 -- 用户表（对应实体 User，@Table app_user）
+-- admin 字段：是否管理员（1=管理员，仅管理员可登录管理后台 admin-web）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS app_user (
     id            BIGINT       NOT NULL AUTO_INCREMENT,
     email         VARCHAR(128) NOT NULL,
     password_hash VARCHAR(128) NOT NULL,
     display_name  VARCHAR(64),
+    admin         BIT(1)       NOT NULL DEFAULT b'0',
     created_at    DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_user_email (email)
@@ -82,6 +84,11 @@ CREATE TABLE IF NOT EXISTS visit_record (
 
 INSERT INTO app_user (id, email, password_hash, display_name, created_at)
 VALUES (1, 'demo@example.com', '$2a$10$o9SkNoxWo6gp0lTpyMVVG.a4vMhGs4F79nxcRW/P/KK8OqMerVblK', 'Demo User', NOW(6));
+
+-- 管理员账号（admin@portflow.dev / admin123456，与 .env 中 ADMIN_EMAIL/ADMIN_PASSWORD 一致；
+-- 启动时 AdminBootstrapConfig 会按环境变量再次校验/重置密码）
+INSERT INTO app_user (email, password_hash, display_name, admin, created_at)
+VALUES ('admin@portflow.dev', '$2b$10$9u69a7LH8s6J6wryVZ9.h.TSENYYX/qbOB4eikX6lhSdBGtdmM8VS', '管理员', b'1', NOW(6));
 
 INSERT INTO portfolio (id, slug, user_id, user_name, slogan, bio, skills,
                        theme_color, template, seo_title, seo_description, avatar_path, is_published)

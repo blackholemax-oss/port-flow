@@ -13,11 +13,14 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handle -> {
-            // 后台页面与后台 API 需要登录（登录/注册页放行）
+            // 后台 API 需要登录（管理后台登录接口 /api/auth/admin/login 不在 /api/admin/** 下，天然放行）
+            SaRouter.match("/api/admin/**").check(r -> StpUtil.checkLogin());
+            // 用户管理接口仅限管理员角色
+            SaRouter.match("/api/admin/users/**").check(r -> StpUtil.checkRole("admin"));
+            // 后台页面需要登录（登录/注册页放行）
             SaRouter.match("/admin/**")
                     .notMatch("/admin/login", "/admin/register")
                     .check(r -> StpUtil.checkLogin());
-            SaRouter.match("/api/admin/**").check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**");
     }
 }

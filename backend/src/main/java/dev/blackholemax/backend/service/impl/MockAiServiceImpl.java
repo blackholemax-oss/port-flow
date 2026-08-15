@@ -1,6 +1,7 @@
-package dev.blackholemax.backend.service;
+package dev.blackholemax.backend.service.impl;
 
 import dev.blackholemax.backend.dto.AiResult;
+import dev.blackholemax.backend.service.AiService;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 

@@ -64,17 +64,53 @@ public class PortfolioApiController {
         }
     }
 
+    /** 通用分页响应。 */
+    public record PageResult<T>(List<T> content, int page, int size, long totalElements, int totalPages) {}
+
+    /** 仪表盘统计。 */
+    public record PortfolioStats(long total, long published, long totalPv, long totalUv) {}
+
     @GetMapping("/api/admin/portfolios")
-    public List<PortfolioSummary> list() {
+    public PageResult<PortfolioSummary> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         long userId = authService.currentUserId();
-        List<Portfolio> portfolios = portfolioRepository.findByUserIdOrderByIdDesc(userId);
-        List<PortfolioSummary> result = new ArrayList<>();
-        for (Portfolio p : portfolios) {
+        List<Portfolio> portfolios = scopedPortfolios(userId);
+        int totalElements = portfolios.size();
+        int safeSize = Math.max(size, 1);
+        int from = Math.min(page * safeSize, totalElements);
+        int to = Math.min(from + safeSize, totalElements);
+        List<PortfolioSummary> content = new ArrayList<>();
+        for (Portfolio p : portfolios.subList(from, to)) {
             long pv = visitRecordRepository.countByPortfolioId(p.getId());
             long uv = visitRecordRepository.countDistinctVisitorByPortfolioId(p.getId());
-            result.add(PortfolioSummary.from(p, pv, uv));
+            content.add(PortfolioSummary.from(p, pv, uv));
         }
-        return result;
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / safeSize);
+        return new PageResult<>(content, page, safeSize, totalElements, totalPages);
+    }
+
+    /** 仪表盘统计：当前登录者可见范围（管理员=全部，普通用户=本人）的汇总。 */
+    @GetMapping("/api/admin/portfolios/stats")
+    public PortfolioStats stats() {
+        long userId = authService.currentUserId();
+        List<Portfolio> portfolios = scopedPortfolios(userId);
+        long total = portfolios.size();
+        long published = portfolios.stream().filter(Portfolio::isPublished).count();
+        long totalPv = 0;
+        long totalUv = 0;
+        for (Portfolio p : portfolios) {
+            totalPv += visitRecordRepository.countByPortfolioId(p.getId());
+            totalUv += visitRecordRepository.countDistinctVisitorByPortfolioId(p.getId());
+        }
+        return new PortfolioStats(total, published, totalPv, totalUv);
+    }
+
+    private List<Portfolio> scopedPortfolios(long userId) {
+        // 管理员查看全部用户的作品集，普通用户仅查看自己的
+        return authService.isAdmin(userId)
+                ? portfolioRepository.findAllByOrderByIdDesc()
+                : portfolioRepository.findByUserIdOrderByIdDesc(userId);
     }
 
     /** 编辑回填：在 PortfolioPageData 基础上补 isPublished，便于编辑器渲染复选框。 */
@@ -105,7 +141,7 @@ public class PortfolioApiController {
         long userId = authService.currentUserId();
         Portfolio p = portfolioRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "作品集不存在"));
-        if (!p.getUserId().equals(userId)) {
+        if (!p.getUserId().equals(userId) && !authService.isAdmin(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权编辑他人的作品集");
         }
         return PortfolioEditData.from(p);
@@ -165,14 +201,14 @@ public class PortfolioApiController {
     }
 
     /**
-     * 删除作品集（仅限本人）。
+     * 删除作品集（本人或管理员）。
      */
     @DeleteMapping("/api/admin/portfolios/{slug}")
     public Map<String, String> delete(@PathVariable String slug) {
         long userId = authService.currentUserId();
         Portfolio p = portfolioRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "作品集不存在"));
-        if (!p.getUserId().equals(userId)) {
+        if (!p.getUserId().equals(userId) && !authService.isAdmin(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权删除他人的作品集");
         }
         portfolioRepository.delete(p);
@@ -191,7 +227,7 @@ public class PortfolioApiController {
         long userId = authService.currentUserId();
         Portfolio p = portfolioRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "作品集不存在"));
-        if (!p.getUserId().equals(userId)) {
+        if (!p.getUserId().equals(userId) && !authService.isAdmin(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权修改他人的作品集");
         }
 

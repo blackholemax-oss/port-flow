@@ -1,9 +1,10 @@
-package dev.blackholemax.backend.service;
+package dev.blackholemax.backend.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.blackholemax.backend.config.DeepSeekEnabledCondition;
 import dev.blackholemax.backend.dto.AiResult;
+import dev.blackholemax.backend.service.AiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

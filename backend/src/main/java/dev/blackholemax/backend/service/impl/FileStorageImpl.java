@@ -1,5 +1,6 @@
-package dev.blackholemax.backend.service;
+package dev.blackholemax.backend.service.impl;
 
+import dev.blackholemax.backend.service.FileStorage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 @Service
-public class FileUploadService implements FileStorage {
+public class FileStorageImpl implements FileStorage {
 
     private static final String UPLOAD_DIR = "uploads";
 

@@ -23,6 +23,10 @@ public class User {
     @Column(length = 64)
     private String displayName;
 
+    /** 是否管理员：仅管理员可登录管理后台（admin-web），由系统初始化，普通注册用户默认为 false */
+    @Column(nullable = false)
+    private boolean admin;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -63,6 +67,14 @@ public class User {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
     }
 
     public LocalDateTime getCreatedAt() {

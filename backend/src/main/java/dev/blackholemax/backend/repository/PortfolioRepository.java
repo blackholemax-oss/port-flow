@@ -16,6 +16,8 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 
     List<Portfolio> findByUserIdOrderByIdDesc(Long userId);
 
+    List<Portfolio> findAllByOrderByIdDesc();
+
     @Query("select p.id from Portfolio p where p.slug = :slug and p.isPublished = true")
     Optional<Long> findPublishedIdBySlug(@Param("slug") String slug);
 }

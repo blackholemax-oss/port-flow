@@ -70,3 +70,9 @@ pexels:
 # 启动方式：cd image-crawler && python server.py --port 8120
 image:
   crawler-api-url: ${IMAGE_CRAWLER_API_URL:http://127.0.0.1:8120}
+
+# 管理后台管理员账号（启动时自动创建/提升为管理员；仅当 ADMIN_PASSWORD 非空时生效）
+app:
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
