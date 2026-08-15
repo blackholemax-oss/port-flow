@@ -63,6 +63,11 @@ const aiLoading = ref(false)
 const aiForm = reactive({ notes: '', userPrompt: '' })
 let editData: PortfolioEditData | null = null
 
+// ---------- AI 调整对话框 ----------
+const aiAdjustDialogVisible = ref(false)
+const aiAdjustLoading = ref(false)
+const aiAdjustForm = reactive({ instruction: '' })
+
 const avatarPreview = () =>
   avatarFile.value ? URL.createObjectURL(avatarFile.value) : form.avatarPath || undefined
 
@@ -257,8 +262,57 @@ async function runAi() {
   }
 }
 
+// ---------- AI 调整 ----------
+async function openAiAdjust(row: PortfolioSummary) {
+  editData = await portfolioApi.getForEdit(row.slug)
+  aiAdjustForm.instruction = ''
+  aiAdjustDialogVisible.value = true
+}
+
+async function runAiAdjust() {
+  if (!editData) return
+  if (!aiAdjustForm.instruction.trim()) {
+    ElMessage.warning('请输入修改要求')
+    return
+  }
+  const currentHtml = editData.generatedHtml ?? ''
+  if (!currentHtml) {
+    ElMessage.warning('该作品集还没有生成网页，请先使用「AI 生成」')
+    return
+  }
+  aiAdjustLoading.value = true
+  try {
+    const res = await aiApi.adjustPortalHtml({
+      slug: editData.slug,
+      currentHtml,
+      instruction: aiAdjustForm.instruction,
+    })
+    // 调整结果仅缓存于 Redis，必须显式持久化到数据库并清除页面缓存
+    await portfolioApi.updateHtml(editData.slug, {
+      html: res.html,
+      userName: editData.userName,
+      slogan: editData.slogan ?? '',
+      bio: editData.bio ?? '',
+      skills: editData.skills ?? '',
+      projects: (editData.projects ?? []).map((p) => ({
+        title: p.title,
+        description: p.description ?? '',
+      })),
+    })
+    ElMessage.success(res.message || '调整完成')
+    aiAdjustDialogVisible.value = false
+    load()
+  } finally {
+    aiAdjustLoading.value = false
+  }
+}
+
+function pageUrl(slug: string) {
+  return `${PUBLISHED_BASE_URL}/p/${slug}`
+}
+
 function preview(row: PortfolioSummary) {
-  window.open(`${PUBLISHED_BASE_URL}/p/${row.slug}`, '_blank')
+  window.open(pageUrl(row.slug), '_blank')
 }
 
 onMounted(load)
@@ -287,14 +341,28 @@ onMounted(load)
               <el-avatar :size="32" :src="row.avatarPath || undefined">
                 <el-icon><User /></el-icon>
               </el-avatar>
-              <div>
-                <div class="font-medium text-gray-800">{{ row.userName }}</div>
-                <div class="text-xs text-gray-400">{{ row.slogan }}</div>
+              <div class="min-w-0 flex-1">
+                <div class="truncate font-medium text-gray-800">{{ row.userName }}</div>
+                <div class="truncate text-xs text-gray-400">{{ row.slogan }}</div>
               </div>
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="slug" label="Slug" min-width="150" show-overflow-tooltip />
+        <el-table-column label="URL" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-link
+              type="primary"
+              :href="pageUrl(row.slug)"
+              target="_blank"
+              rel="noopener"
+              :underline="false"
+            >
+              /p/{{ row.slug }}
+            </el-link>
+          </template>
+        </el-table-column>
+        <el-table-column prop="ownerName" label="创建用户" min-width="140" show-overflow-tooltip />
         <el-table-column label="模板" width="110">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">{{ row.template }}</el-tag>
@@ -317,10 +385,11 @@ onMounted(load)
         </el-table-column>
         <el-table-column prop="pv" label="PV" width="70" />
         <el-table-column prop="uv" label="UV" width="70" />
-        <el-table-column label="操作" width="230" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
             <el-button link type="primary" size="small" @click="openAi(row)">AI 生成</el-button>
+            <el-button link type="warning" size="small" @click="openAiAdjust(row)">AI 调整</el-button>
             <el-button link type="success" size="small" @click="preview(row)">预览</el-button>
             <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
@@ -413,7 +482,7 @@ onMounted(load)
             <el-avatar :size="64" :src="avatarPreview()">
               <el-icon><UserFilled /></el-icon>
             </el-avatar>
-            <div class="mt-1 text-xs text-gray-400">点击更换头像</div>
+            <div class="ml-3 text-xs text-gray-400">点击更换头像</div>
           </el-upload>
         </el-form-item>
 
@@ -491,6 +560,29 @@ onMounted(load)
       <template #footer>
         <el-button @click="aiDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="aiLoading" @click="runAi">开始生成</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- AI 调整对话框 -->
+    <el-dialog v-model="aiAdjustDialogVisible" title="AI 调整门户页面" width="560px" destroy-on-close>
+      <el-form label-width="96px">
+        <el-form-item label="修改要求">
+          <el-input
+            v-model="aiAdjustForm.instruction"
+            type="textarea"
+            :rows="4"
+            placeholder="如：把主题色改成深蓝色、把 slogan 改成「用代码点亮世界」、新增一个「开源项目」区块、删除技能标签 Java 等"
+          />
+        </el-form-item>
+      </el-form>
+      <div class="mb-2 text-xs text-gray-400">
+        说明：将调用 AI 在现有网页基础上按你的要求修改，调整成功后自动保存到数据库并清除页面缓存。
+      </div>
+      <template #footer>
+        <el-button @click="aiAdjustDialogVisible = false">取消</el-button>
+        <el-button type="warning" :loading="aiAdjustLoading" @click="runAiAdjust">
+          开始调整
+        </el-button>
       </template>
     </el-dialog>
   </div>

@@ -165,6 +165,7 @@ docker compose up -d --build
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | 否 | Redis 连接（默认 localhost / 6379 / 空） |
 | `IMAGE_CRAWLER_API_URL` | 否 | image-crawler Python API 服务地址（默认 `http://127.0.0.1:8120`） |
 | `BACKEND_URL` | 否 | 前端代理的后端地址（默认 `http://127.0.0.1:8080`） |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | 否 | 管理后台管理员账号（默认 `admin@portflow.dev` / `admin123456`，启动时自动创建/提升为管理员） |
 | `SPRING_PROFILES_ACTIVE` | 否 | Spring profile：`dev`（H2）或 `docker` |
 
 ## 核心流程说明
@@ -194,7 +195,8 @@ docker compose up -d --build
 
 | 账号 | 密码 | 用途 |
 | --- | --- | --- |
-| `demo@example.com` | `demo123` | 后台登录演示账号（由 DataSeeder 初始化） |
+| `admin@portflow.dev` | `admin123456` | 管理后台登录账号（管理员，由 `.env` 的 `ADMIN_EMAIL` / `ADMIN_PASSWORD` 初始化，仅管理员可登录后台） |
+| `demo@example.com` | `demo123` | 前台演示账号（普通用户，由 DataSeeder 初始化） |
 
 ## 测试
 

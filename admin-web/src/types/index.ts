@@ -32,6 +32,7 @@ export interface PortfolioSummary {
   avatarPath: string | null
   pv: number
   uv: number
+  ownerName: string
 }
 
 export interface PageResult<T> {

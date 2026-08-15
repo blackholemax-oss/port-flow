@@ -4,7 +4,9 @@ import dev.blackholemax.backend.dto.PortfolioFormDTO;
 import dev.blackholemax.backend.dto.PortfolioPageData;
 import dev.blackholemax.backend.entity.Portfolio;
 import dev.blackholemax.backend.entity.Project;
+import dev.blackholemax.backend.entity.User;
 import dev.blackholemax.backend.repository.PortfolioRepository;
+import dev.blackholemax.backend.repository.UserRepository;
 import dev.blackholemax.backend.repository.VisitRecordRepository;
 import dev.blackholemax.backend.service.AuthService;
 import dev.blackholemax.backend.service.FileStorage;
@@ -19,6 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 作品集 JSON 接口（供 Next.js 前端调用）：
@@ -37,6 +41,7 @@ public class PortfolioApiController {
     private final PortfolioQueryService portfolioQueryService;
     private final PortfolioRepository portfolioRepository;
     private final VisitRecordRepository visitRecordRepository;
+    private final UserRepository userRepository;
     private final AuthService authService;
     private final FileStorage fileStorage;
 
@@ -44,23 +49,27 @@ public class PortfolioApiController {
                                   PortfolioQueryService portfolioQueryService,
                                   PortfolioRepository portfolioRepository,
                                   VisitRecordRepository visitRecordRepository,
+                                  UserRepository userRepository,
                                   AuthService authService,
                                   FileStorage fileStorage) {
         this.portfolioService = portfolioService;
         this.portfolioQueryService = portfolioQueryService;
         this.portfolioRepository = portfolioRepository;
         this.visitRecordRepository = visitRecordRepository;
+        this.userRepository = userRepository;
         this.authService = authService;
         this.fileStorage = fileStorage;
     }
 
-    /** 仪表盘列表：当前用户的全部作品集 + PV/UV。 */
+    /** 仪表盘列表：当前用户的全部作品集 + PV/UV + 创建用户。 */
     public record PortfolioSummary(
             Long id, String slug, String userName, String slogan, String template,
-            boolean isPublished, String themeColor, String avatarPath, long pv, long uv) {
-        static PortfolioSummary from(Portfolio p, long pv, long uv) {
+            boolean isPublished, String themeColor, String avatarPath, long pv, long uv,
+            String ownerName) {
+        static PortfolioSummary from(Portfolio p, long pv, long uv, String ownerName) {
             return new PortfolioSummary(p.getId(), p.getSlug(), p.getUserName(), p.getSlogan(),
-                    p.getTemplate(), p.isPublished(), p.getThemeColor(), p.getAvatarPath(), pv, uv);
+                    p.getTemplate(), p.isPublished(), p.getThemeColor(), p.getAvatarPath(), pv, uv,
+                    ownerName);
         }
     }
 
@@ -80,11 +89,13 @@ public class PortfolioApiController {
         int safeSize = Math.max(size, 1);
         int from = Math.min(page * safeSize, totalElements);
         int to = Math.min(from + safeSize, totalElements);
+        List<Portfolio> pageItems = portfolios.subList(from, to);
+        Map<Long, String> ownerNames = ownerNamesOf(pageItems);
         List<PortfolioSummary> content = new ArrayList<>();
-        for (Portfolio p : portfolios.subList(from, to)) {
+        for (Portfolio p : pageItems) {
             long pv = visitRecordRepository.countByPortfolioId(p.getId());
             long uv = visitRecordRepository.countDistinctVisitorByPortfolioId(p.getId());
-            content.add(PortfolioSummary.from(p, pv, uv));
+            content.add(PortfolioSummary.from(p, pv, uv, ownerNames.getOrDefault(p.getUserId(), "")));
         }
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / safeSize);
         return new PageResult<>(content, page, safeSize, totalElements, totalPages);
@@ -111,6 +122,20 @@ public class PortfolioApiController {
         return authService.isAdmin(userId)
                 ? portfolioRepository.findAllByOrderByIdDesc()
                 : portfolioRepository.findByUserIdOrderByIdDesc(userId);
+    }
+
+    /** 批量查询作品集归属用户的显示名（displayName 为空时回退邮箱）。 */
+    private Map<Long, String> ownerNamesOf(List<Portfolio> portfolios) {
+        Set<Long> userIds = portfolios.stream().map(Portfolio::getUserId).collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        u -> u.getDisplayName() != null && !u.getDisplayName().isBlank()
+                                ? u.getDisplayName() : u.getEmail(),
+                        (a, b) -> a));
     }
 
     /** 编辑回填：在 PortfolioPageData 基础上补 isPublished，便于编辑器渲染复选框。 */
