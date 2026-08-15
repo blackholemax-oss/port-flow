@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作品集管理 - AI 策展师</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f6fa; color: #1f2937; padding: 40px 16px;
+        }
+        .container { max-width: 860px; margin: 0 auto; }
+        .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        h1 { font-size: 24px; }
+        .head-right { display: flex; gap: 12px; align-items: center; }
+        .btn {
+            display: inline-block; padding: 9px 18px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+        }
+        .btn-primary { background: #4F46E5; color: #fff; }
+        .btn-ghost { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
+        .card {
+            background: #fff; border-radius: 12px; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+        .info h3 { font-size: 16px; margin-bottom: 4px; }
+        .info p { font-size: 13px; color: #6b7280; }
+        .info a { color: #4F46E5; text-decoration: none; }
+        .meta { display: flex; gap: 24px; align-items: center; }
+        .meta .stat { font-size: 13px; color: #6b7280; }
+        .meta .stat b { color: #1f2937; font-size: 15px; }
+        .tag {
+            font-size: 12px; padding: 2px 10px; border-radius: 999px;
+            background: #eef2ff; color: #4F46E5;
+        }
+        .empty {
+            text-align: center; color: #9ca3af; padding: 60px 0; font-size: 14px;
+        }
+        .empty .btn { margin-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="head">
+        <h1>我的作品集</h1>
+        <div class="head-right">
+            <a class="btn btn-primary" href="/admin/editor">+ 新建作品集</a>
+            <button class="btn btn-ghost" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(portfolios)}">
+        <div class="card" th:each="p : ${portfolios}">
+            <div class="info">
+                <h3 th:text="${p.userName}">用户名</h3>
+                <p>
+                    <span class="tag" th:text="${p.template}">card</span>
+                    <span th:if="${p.slogan}" th:text="${p.slogan}">slogan</span>
+                    <span>·</span>
+                    <a th:href="'/p/' + ${p.slug}" th:text="'/p/' + ${p.slug}" target="_blank">/p/demo</a>
+                </p>
+            </div>
+            <div class="meta">
+                <span class="stat">PV <b th:text="${pvMap[p.id]}">0</b></span>
+                <span class="stat">UV <b th:text="${uvMap[p.id]}">0</b></span>
+                <a class="btn btn-ghost" th:href="'/admin/editor?slug=' + ${p.slug}">编辑</a>
+                <a class="btn btn-primary" th:href="'/p/' + ${p.slug}" target="_blank">查看</a>
+            </div>
+        </div>
+    </div>
+    <div class="empty" th:unless="${!#lists.isEmpty(portfolios)}">
+        还没有作品集，点击下方按钮创建你的第一个作品集
+        <br>
+        <a class="btn btn-primary" href="/admin/editor">+ 新建作品集</a>
+    </div>
+</div>
+<script>
+    async function logout() {
+        await fetch('/api/auth/logout', {method: 'POST'});
+        location.href = '/admin/login';
+    }
+</script>
+</body>
+</html>

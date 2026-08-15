@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    # docker 环境：数据库与缓存通过服务名访问，本地开发由 application.yml 默认值覆盖
+    url: 'jdbc:mysql://mysql:3306/portfolio?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true'
+  data:
+    redis:
+      host: redis

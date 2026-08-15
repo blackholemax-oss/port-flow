@@ -1,0 +1,72 @@
+spring:
+  # 默认使用 MySQL + Redis（主配置）
+  # Docker 环境通过环境变量 SPRING_PROFILES_ACTIVE=docker 覆盖
+  application:
+    name: backend
+  web:
+    resources:
+      static-locations: 'classpath:/static/,file:./uploads/'
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  datasource:
+    # MySQL（与 docker-compose 中的 mysql 服务保持一致）
+    url: 'jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:portfolio}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true'
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    # HikariCP 连接池：避免连接被 MySQL 单方面关闭后池中仍保留失效连接
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000        # 获取连接最多等 30s
+      idle-timeout: 600000             # 空闲 10min 后回收
+      max-lifetime: 1800000            # 连接最长活 30min（小于 MySQL wait_timeout）
+      keepalive-time: 120000           # 每 2min 主动 ping 一次保活
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  data:
+    redis:
+      # Redis 二级缓存
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3s
+  thymeleaf:
+    cache: false
+    encoding: UTF-8
+
+sa-token:
+  token-name: satoken
+  timeout: 86400
+  active-timeout: -1
+  is-concurrent: true
+  is-share: true
+  token-style: jwt
+  # JWT 签名密钥可通过环境变量 SA_TOKEN_SECRET 覆盖（生产环境必须设置，勿硬编码提交）
+  jwt-secret-key: ${SA_TOKEN_SECRET:ai-curator-demo-secret-2026}
+  is-log: false
+
+ai:
+  deepseek:
+    # API Key 一律通过环境变量 AI_DEEPSEEK_API_KEY 提供（不要硬编码到配置文件，勿提交）
+    api-key: ${AI_DEEPSEEK_API_KEY:}
+    base-url: https://api.deepseek.com/v1
+    model: deepseek-chat
+    timeout-seconds: 90
+
+# Pexels 图片搜索 API（免费，200 次/小时）
+# 申请地址：https://www.pexels.com/api/
+# 配置后门户生成 agent 会自动上网搜索素材图片并下载使用
+pexels:
+  api-key: ${PEXELS_API_KEY:}
+
+# image-crawler 图片爬虫 HTTP API 服务（Python Flask 服务，独立部署）
+# 启动方式：cd image-crawler && python server.py --port 8120
+image:
+  crawler-api-url: ${IMAGE_CRAWLER_API_URL:http://127.0.0.1:8120}

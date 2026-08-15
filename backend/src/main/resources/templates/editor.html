@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${portfolio != null} ? '编辑作品集' : '新建作品集'">编辑作品集 - AI 策展师</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f6fa; color: #1f2937; padding: 40px 16px;
+        }
+        .container { max-width: 760px; margin: 0 auto; }
+        .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        h1 { font-size: 24px; }
+        .back { color: #4F46E5; text-decoration: none; font-size: 14px; }
+        .card {
+            background: #fff; border-radius: 12px; padding: 28px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 20px;
+        }
+        .field { margin-bottom: 18px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+        .hint { font-size: 12px; color: #9ca3af; font-weight: 400; }
+        input[type="text"], input[type="email"], input[type="color"], textarea, select {
+            width: 100%; padding: 10px 12px; border: 1px solid #d1d5db;
+            border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff;
+        }
+        textarea { resize: vertical; }
+        input[type="color"] { height: 42px; padding: 4px; cursor: pointer; }
+        input[type="file"] { width: 100%; font-size: 13px; }
+        input[type="checkbox"] { width: 16px; height: 16px; }
+        .checkbox-line { display: flex; align-items: center; gap: 8px; }
+        .checkbox-line label { margin: 0; font-weight: 500; }
+        .section-title {
+            font-size: 15px; font-weight: 700; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .ai-panel {
+            background: linear-gradient(135deg, #eef2ff, #fdf4ff);
+            border: 1px dashed #c7d2fe; border-radius: 12px; padding: 20px;
+            margin-bottom: 20px;
+        }
+        .ai-panel h2 { font-size: 15px; margin-bottom: 10px; }
+        .btn {
+            display: inline-block; padding: 9px 16px; border: none; border-radius: 8px;
+            font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none;
+        }
+        .btn-ai { background: #7c3aed; color: #fff; margin-right: 8px; margin-top: 8px; }
+        .btn-ai:hover { background: #6d28d9; }
+        .btn-ai:disabled { opacity: .5; cursor: wait; }
+        .btn-primary { background: #4F46E5; color: #fff; padding: 11px 24px; font-size: 14px; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-danger { background: #fef2f2; color: #dc2626; margin-top: 8px; }
+        .btn-ghost { background: #eef0f3; color: #374151; margin-top: 8px; }
+        .project-row {
+            border: 1px dashed #d1d5db; border-radius: 8px; padding: 16px;
+            margin-bottom: 12px; background: #fafbfc;
+        }
+        .ai-result { font-size: 12px; color: #7c3aed; margin-top: 6px; min-height: 16px; }
+        .cover-preview { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .cover-preview img { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; }
+        .avatar-preview img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="head">
+        <h1 th:text="${portfolio != null} ? '编辑作品集' : '新建作品集'">编辑作品集</h1>
+        <a class="back" href="/admin">← 返回列表</a>
+    </div>
+
+    <!-- AI 智能面板 -->
+    <div class="ai-panel">
+        <h2>✨ AI 魔法生成（零文案，一键生成）</h2>
+        <div class="field">
+            <label for="notes">灵感便签 <span class="hint">随便写几个词：技术、摄影、咖啡、独立开发…</span></label>
+            <textarea id="notes" rows="2" placeholder="例如：Java 高并发 开源 技术布道"></textarea>
+        </div>
+        <div>
+            <button type="button" class="btn btn-ai" onclick="generateBio()">✨ 生成个人简介</button>
+            <button type="button" class="btn btn-ai" onclick="recommendColor()">🎨 推荐配色</button>
+            <button type="button" class="btn btn-ai" onclick="generateSeo()">🔍 生成 SEO</button>
+            <div class="ai-result" id="aiHint"></div>
+        </div>
+    </div>
+
+    <form class="card" method="post" action="/admin/publish" enctype="multipart/form-data" th:inline="text">
+        <div class="grid-2">
+            <div class="field">
+                <label for="slug">页面地址（slug） <span class="hint">如 john-doe → /p/john-doe</span></label>
+                <input type="text" id="slug" name="slug" required
+                       th:value="${portfolio != null} ? ${portfolio.slug} : ''" placeholder="john-doe">
+            </div>
+            <div class="field">
+                <label for="userName">用户名</label>
+                <input type="text" id="userName" name="userName" required
+                       th:value="${portfolio != null} ? ${portfolio.userName} : ''" placeholder="张三">
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="slogan">口号 Slogan <span class="hint">AI 可生成，也可手动修改</span></label>
+            <input type="text" id="slogan" name="slogan"
+                   th:value="${portfolio != null} ? ${portfolio.slogan} : ''" placeholder="让技术，成为我的名片">
+        </div>
+
+        <div class="field">
+            <label for="bio">个人故事 Bio</label>
+            <textarea id="bio" name="bio" rows="3" placeholder="介绍一下你自己…">[[${portfolio != null ? (portfolio.bio ?: '') : ''}]]</textarea>
+        </div>
+
+        <div class="field">
+            <label for="skills">技能标签 <span class="hint">逗号分隔</span></label>
+            <input type="text" id="skills" name="skills"
+                   th:value="${portfolio != null} ? ${portfolio.skills} : ''" placeholder="Java, Spring Boot, AI">
+        </div>
+
+        <div class="grid-2">
+            <div class="field">
+                <label for="themeColor">主题色</label>
+                <input type="color" id="themeColor" name="themeColor"
+                       th:value="${portfolio != null and portfolio.themeColor != null} ? ${portfolio.themeColor} : '#4F46E5'">
+            </div>
+            <div class="field">
+                <label for="template">展示模板</label>
+                <select id="template" name="template">
+                    <option value="card" th:selected="${portfolio == null or portfolio.template == 'card' or portfolio.template == null}">极简卡片</option>
+                    <option value="gallery" th:selected="${portfolio != null and portfolio.template == 'gallery'}">画廊大图</option>
+                    <option value="magazine" th:selected="${portfolio != null and portfolio.template == 'magazine'}">杂志风</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="avatar">头像</label>
+            <div class="avatar-preview" th:if="${portfolio != null and portfolio.avatarPath != null}">
+                <img th:src="${portfolio.avatarPath}" alt="当前头像">
+            </div>
+            <input type="file" id="avatar" name="avatar" accept="image/*">
+            <div class="hint" th:if="${portfolio != null and portfolio.avatarPath != null}">不选择新文件则保留当前头像</div>
+        </div>
+
+        <div class="field">
+            <label for="seoTitle">SEO 标题 <span class="hint">AI 可生成，控制台页面搜索展示</span></label>
+            <input type="text" id="seoTitle" name="seoTitle"
+                   th:value="${portfolio != null} ? ${portfolio.seoTitle} : ''" placeholder="张三 - 个人作品集 | AI 策展师">
+        </div>
+
+        <div class="field">
+            <label for="seoDescription">SEO 描述</label>
+            <textarea id="seoDescription" name="seoDescription" rows="2" placeholder="搜索引擎摘要，150 字以内">[[${portfolio != null ? (portfolio.seoDescription ?: '') : ''}]]</textarea>
+        </div>
+
+        <div class="field">
+            <div class="checkbox-line">
+                <input type="checkbox" id="isPublished" name="isPublished" value="true"
+                       th:checked="${portfolio == null or portfolio.isPublished()}">
+                <label for="isPublished">立即发布（不勾选则访问页面返回 404）</label>
+            </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+
+        <div class="section-title">📂 作品项目</div>
+        <div id="projectRows">
+            <div class="project-row" th:each="pr : ${projects}">
+                <div class="field">
+                    <label>作品标题</label>
+                    <input type="text" name="title" th:value="${pr.title}" placeholder="作品名称">
+                </div>
+                <div class="field">
+                    <label>作品描述 <span class="hint">可点击 ✨ 润色</span></label>
+                    <textarea name="description" rows="2" placeholder="原始描述…例如：做了个后台">[[${pr.description ?: ''}]]</textarea>
+                    <button type="button" class="btn btn-ai" onclick="polishRow(this)" style="margin-top:6px">✨ 润色描述</button>
+                </div>
+                <div class="field">
+                    <label>封面图 <span class="hint">不选择则按顺序保留原封面</span></label>
+                    <input type="file" name="cover" accept="image/*">
+                </div>
+                <button type="button" class="btn btn-danger" onclick="removeRow(this)">删除该作品</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-ghost" onclick="addRow()">+ 添加作品</button>
+
+        <div style="margin-top:24px; text-align:right">
+            <button type="submit" class="btn btn-primary">保存并发布</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function addRow() {
+        const div = document.createElement('div');
+        div.className = 'project-row';
+        div.innerHTML =
+            '<div class="field"><label>作品标题</label><input type="text" name="title" placeholder="作品名称"></div>' +
+            '<div class="field"><label>作品描述 <span class="hint">可点击 ✨ 润色</span></label>' +
+            '<textarea name="description" rows="2" placeholder="原始描述…例如：做了个后台"></textarea>' +
+            '<button type="button" class="btn btn-ai" onclick="polishRow(this)" style="margin-top:6px">✨ 润色描述</button></div>' +
+            '<div class="field"><label>封面图</label><input type="file" name="cover" accept="image/*"></div>' +
+            '<button type="button" class="btn btn-danger" onclick="removeRow(this)">删除该作品</button>';
+        document.getElementById('projectRows').appendChild(div);
+    }
+
+    function removeRow(btn) {
+        btn.parentElement.remove();
+    }
+
+    function showHint(msg) {
+        document.getElementById('aiHint').textContent = msg;
+    }
+
+    async function aiFetch(url, body) {
+        showHint('AI 生成中…');
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        if (resp.status === 401) {
+            location.href = '/admin/login';
+            throw new Error('unauthorized');
+        }
+        if (!resp.ok) {
+            throw new Error('AI 服务异常');
+        }
+        return resp.json();
+    }
+
+    async function generateBio() {
+        const notes = document.getElementById('notes').value.trim();
+        if (!notes) { showHint('请先在灵感便签里写几个关键词'); return; }
+        const data = await aiFetch('/api/admin/ai/generate-bio', {keywords: notes});
+        document.getElementById('slogan').value = data.slogan || '';
+        document.getElementById('bio').value = data.story || '';
+        document.getElementById('skills').value = (data.skills || []).join(', ');
+        showHint('✅ Bio 已生成，可手动微调后再保存');
+    }
+
+    async function polishRow(btn) {
+        const textarea = btn.parentElement.querySelector('textarea');
+        const raw = textarea.value.trim();
+        if (!raw) { textarea.focus(); return; }
+        btn.disabled = true;
+        try {
+            const data = await aiFetch('/api/admin/ai/polish-description', {text: raw});
+            textarea.value = data.text || '';
+            showHint('✅ 描述已润色');
+        } catch (e) {
+            showHint('润色失败，请稍后重试');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function recommendColor() {
+        const occ = prompt('你的职业属性？\n（程序员 / 设计师 / 摄影师 / 产品经理）', '程序员');
+        if (!occ) return;
+        const data = await aiFetch('/api/admin/ai/recommend-color', {occupation: occ});
+        if (data.color) { document.getElementById('themeColor').value = data.color; }
+        showHint('✅ 推荐配色 ' + (data.color || '') + '：' + (data.reason || ''));
+    }
+
+    async function generateSeo() {
+        const data = await aiFetch('/api/admin/ai/generate-seo', {
+            userName: document.getElementById('userName').value,
+            bio: document.getElementById('bio').value
+        });
+        if (data.title) { document.getElementById('seoTitle').value = data.title; }
+        if (data.description) { document.getElementById('seoDescription').value = data.description; }
+        showHint('✅ SEO 已生成');
+    }
+</script>
+</body>
+</html>

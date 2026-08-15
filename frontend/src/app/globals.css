@@ -1,0 +1,185 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f4efe6;
+  --paper-soft: #fbf8f1;
+  --ink: #1a1714;
+  --ink-soft: #3a342c;
+  --mute: #8a8276;
+  --line: #e2d9c8;
+  --ember: #c2521f;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-spline), system-ui, sans-serif;
+  font-feature-settings: "ss01", "ss02";
+}
+
+::selection {
+  background: var(--ember);
+  color: var(--paper-soft);
+}
+
+/* 细腻的纸质纹理：极轻的颗粒叠加，营造策展画廊质感 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6cab4;
+  border-radius: 999px;
+  border: 3px solid var(--paper);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ember);
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-[1080px] px-6 md:px-10;
+  }
+
+  /* 极小号大写字母标签——策展口吻 */
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-wider3 text-mute;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-line;
+  }
+
+  /* 按钮 */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ink {
+    @apply bg-ink text-paper-soft hover:bg-ink-soft;
+  }
+  .btn-ember {
+    @apply bg-ember text-paper-soft hover:bg-ember-deep;
+  }
+  .btn-ghost {
+    @apply border border-line bg-transparent text-ink hover:border-ink;
+  }
+  .btn-link {
+    @apply text-ember underline-offset-4 hover:underline;
+  }
+
+  /* 表单控件 */
+  .input,
+  .textarea,
+  .select {
+    @apply w-full rounded-xl border border-line bg-paper-soft px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-mute/60 focus:border-ink;
+  }
+  .textarea {
+    @apply resize-y leading-relaxed;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-soft;
+  }
+  .hint {
+    @apply text-[12px] font-normal text-mute;
+  }
+}
+
+/* 装饰性入场动画延迟工具 */
+.delay-1 {
+  animation-delay: 0.08s;
+}
+.delay-2 {
+  animation-delay: 0.16s;
+}
+.delay-3 {
+  animation-delay: 0.24s;
+}
+.delay-4 {
+  animation-delay: 0.32s;
+}
+.delay-5 {
+  animation-delay: 0.4s;
+}
+.delay-6 {
+  animation-delay: 0.48s;
+}
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14% 8%;
+    --primary: 20 14% 8%;
+    --primary-foreground: 40 33% 96%;
+    --secondary: 40 25% 92%;
+    --secondary-foreground: 20 14% 8%;
+    --muted: 40 25% 92%;
+    --muted-foreground: 37 7% 51%;
+    --accent: 40 25% 92%;
+    --accent-foreground: 20 14% 8%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 20 14% 8%;
+    --radius: 0.625rem;
+  }
+  .dark {
+    --background: 20 14% 8%;
+    --foreground: 40 33% 96%;
+    --card: 20 14% 12%;
+    --card-foreground: 40 33% 96%;
+    --popover: 20 14% 12%;
+    --popover-foreground: 40 33% 96%;
+    --primary: 40 25% 92%;
+    --primary-foreground: 20 14% 8%;
+    --secondary: 20 10% 20%;
+    --secondary-foreground: 40 33% 96%;
+    --muted: 20 10% 20%;
+    --muted-foreground: 40 10% 65%;
+    --accent: 20 10% 20%;
+    --accent-foreground: 40 33% 96%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 40 10% 65%;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+}

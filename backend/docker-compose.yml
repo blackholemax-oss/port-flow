@@ -1,0 +1,59 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: portfolio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: portfolio
+      MYSQL_USER: portfolio
+      MYSQL_PASSWORD: portfolio123
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+      # 首次初始化时自动建表并写入演示数据
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: portfolio-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: portfolio-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      # 在 .env 中配置 AI_DEEPSEEK_API_KEY=sk-xxx；未配置时自动降级为 Mock AI
+      AI_DEEPSEEK_API_KEY: ${AI_DEEPSEEK_API_KEY:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  mysqldata:
+  redisdata:
+  uploads:
